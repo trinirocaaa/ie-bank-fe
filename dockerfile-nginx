@@ -1,0 +1,19 @@
+# Build stage
+FROM node:lts-alpine AS build-stage
+ARG MODE
+WORKDIR /app
+COPY package*.json ./
+RUN npm install
+COPY . .
+
+# Use the appropriate build script based on the mode
+# If MODE is "development", run build:dev; if "uat", run build:uat
+RUN if [ "$MODE" = "development" ]; then npm run build:dev; \
+    elif [ "$MODE" = "uat" ]; then npm run build:uat; \
+    else echo "Unknown mode: $MODE" && exit 1; fi
+
+# Run stage
+FROM nginx:stable-alpine AS run-stage
+COPY --from=build-stage /app/dist /usr/share/nginx/html
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]
